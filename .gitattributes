@@ -1,0 +1,8 @@
+# Normalize text files to LF in the repository so Linux/Docker builds are predictable.
+* text=auto eol=lf
+
+# Binary assets (do not convert line endings)
+*.pt binary
+*.jpg binary
+*.jpeg binary
+*.png binary

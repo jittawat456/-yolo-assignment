@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: yolo-animal-detection
+    runtime: docker
+    plan: starter          # 2 GB RAM; use "free" only if you accept 512 MB and cold starts
+    region: singapore
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: YOLO_CONFIG_DIR
+        value: /tmp/Ultralytics

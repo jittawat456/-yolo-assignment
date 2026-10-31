@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Packaging / test caches
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Notebooks and training artefacts (not needed by the web app)
+.ipynb_checkpoints/
+runs/
+dataset/
+*.ipynb
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+instance/
+
+# Uploaded / temporary files (the app is in-memory, but keep these ignored)
+uploads/
+tmp/
+*.log
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Keep the trained weights: models/*.pt must be committed for deployment.
+!models/
+!models/*.pt

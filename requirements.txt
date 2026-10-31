@@ -1,0 +1,13 @@
+# Web framework
+Flask>=3.0,<4.0
+
+# Production WSGI server (Linux/Render only; Windows uses `python app.py`)
+gunicorn>=22.0,<24.0; platform_system != "Windows"
+
+# YOLO inference. This pulls PyTorch/torchvision automatically if they are not
+# already installed; the Dockerfile installs CPU-only wheels first to keep the
+# image small. For local Windows installs, see README.md.
+ultralytics>=8.4.0,<9.0.0
+
+# Image decoding and validation
+Pillow>=10.0,<14.0
