@@ -2,7 +2,22 @@
 
 เว็บแอปพลิเคชันสำหรับสาธิตการตรวจจับสัตว์ 4 คลาส (**Cat, Cow, Dog, Lion**) ด้วยโมเดล YOLO ที่ฝึกมาแล้ว 2 รูปแบบ คือ Object Detection (Rectangle) และ Instance Segmentation (Polygon) พัฒนาด้วย Flask + Ultralytics YOLO และออกแบบ UI เป็น Light Theme แบบ Responsive
 
-> สถานะ: ทดสอบการทำงานบนเครื่อง Windows ผ่านทั้งหมด แต่ **ยังไม่ได้ Deploy ขึ้น Render จริง** และ **ยังไม่ได้รัน `docker build` ในเครื่องที่พัฒนา** (เครื่องไม่มี Docker) — ดูรายละเอียดในหัวข้อ [ผลการทดสอบ](#10-ผลการทดสอบ)
+> **Live demo:** <https://yolo-animal-detection-2cpv.onrender.com>
+>
+> **GitHub:** <https://github.com/jittawat456/-yolo-assignment>
+>
+> สถานะ: Deploy บน Render สำเร็จ (Free plan) และทดสอบ Rectangle/Polygon บน URL จริงผ่านแล้ว วันที่ 31 ตุลาคม 2026 — หมายเหตุ: Free plan จะ spin down เมื่อไม่มีผู้ใช้งาน และ request แรกอาจใช้เวลาประมาณ 1–2 นาที
+
+---
+
+## 0. ลิงก์เว็บไซต์
+
+| รายการ | ลิงก์ |
+|---|---|
+| เว็บไซต์ | <https://yolo-animal-detection-2cpv.onrender.com> |
+| Health check | <https://yolo-animal-detection-2cpv.onrender.com/health> |
+| GitHub Repository | <https://github.com/jittawat456/-yolo-assignment> |
+| Render Dashboard | <https://dashboard.render.com/web/srv-dbj14th42hec73bocg6g> |
 
 ---
 
@@ -172,7 +187,7 @@ docker run --rm -p 10000:10000 -e PORT=10000 yolo-animal-detection
 - รันเป็น user ที่ไม่ใช่ root (`appuser`, UID/GID 10001)
 - มี `HEALTHCHECK` ไปที่ `/health`
 
-> หมายเหตุ: เครื่องที่ใช้พัฒนาไม่มี Docker จึง **ยังไม่ได้รันคำสั่ง build จริง** แต่ตรวจ lint Dockerfile ด้วย `hadolint` ผ่านแล้ว (ไม่พบ warning) ควรทดสอบ `docker build` อีกครั้งก่อนส่ง/ก่อน deploy
+> หมายเหตุ: เครื่องที่ใช้พัฒนาไม่มี Docker จึงไม่ได้รัน `docker build` ในเครื่อง แต่ Render ได้ build Docker image จาก Dockerfile นี้สำเร็จและ service ขึ้นสถานะ `live` แล้ว
 
 ---
 
@@ -199,23 +214,23 @@ git push -u origin main
 1. เข้า Render Dashboard → **New** → **Blueprint**
 2. เลือก GitHub repository ที่ push ไว้
 3. Render จะอ่าน `render.yaml` และสร้าง service ชื่อ `yolo-animal-detection`
-4. ตรวจสอบ plan: ค่าเริ่มต้นในไฟล์คือ **Starter (2 GB RAM)** ซึ่งเหมาะกับ PyTorch + 2 โมเดล
+4. ตรวจสอบ plan: repository นี้ตั้งค่าเป็น **Free (512 MB)** เพราะบัญชีที่ใช้ deploy ไม่มี payment method; หากมีงบประมาณแนะนำเปลี่ยนเป็น **Starter (2 GB RAM)**
 5. กด **Apply** / **Create**
 6. รอ build และรอ health check ที่ `/health` ผ่าน
 7. เปิด URL ที่ Render ให้มา แล้วทดสอบ Rectangle/Polygon ด้วย sample images
 
-Render จะกำหนดค่า `PORT` ให้อัตโนมัติ แอปอ่านค่าจาก environment variable นี้และ bind ที่ `0.0.0.0` อยู่แล้ว
+Render กำหนดค่า `PORT` ให้อัตโนมัติ แอปอ่านค่าจาก environment variable นี้และ bind ที่ `0.0.0.0` อยู่แล้ว
 
 ### 7.3 กรณีใช้ repo ที่มีโฟลเดอร์ซ้อน
 
-ถ้า push ทั้งโฟลเดอร์ `Assignment` (มี `yolo_webapp_project` อยู่ข้างใน) ต้องแก้ `render.yaml` ที่ root ของ repo เป็น:
+Repository ที่ deploy จริงใช้ `yolo_webapp_project` เป็น root ของ repo จึงไม่ต้องตั้ง `dockerContext` เพิ่ม ถ้า push ทั้งโฟลเดอร์ `Assignment` (มี `yolo_webapp_project` อยู่ข้างใน) ต้องแก้ `render.yaml` ที่ root ของ repo เป็น:
 
 ```yaml
 services:
   - type: web
     name: yolo-animal-detection
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     dockerContext: ./yolo_webapp_project
     dockerfilePath: ./yolo_webapp_project/Dockerfile
@@ -227,10 +242,16 @@ services:
 
 ### 7.4 เรื่อง RAM และ Free Plan
 
-วัดบนเครื่องพัฒนาได้ประมาณ **253 MB หลังโหลดโมเดล** และ **396 MB หลัง predict ทั้งสองโหมด** (ยังไม่รวม overhead ของ Gunicorn/OS)
+วัดบนเครื่องพัฒนาได้ประมาณ **253 MB หลังโหลดโมเดล** และ **396 MB หลัง predict ทั้งสองโหมด** (ยังไม่รวม overhead ของ Gunicorn/OS) บน Render Free plan (512 MB) service ทำงานและ predict ได้จริงในการทดสอบครั้งนี้ แต่เหลือ headroom ไม่มาก
 
-- **Starter (2 GB)** — แนะนำและตั้งค่าไว้ใน `render.yaml`
-- **Free (512 MB)** — อาจเริ่มทำงานได้ แต่เหลือ headroom น้อยมากและเสี่ยง OOM ระหว่าง predict; ถ้าเปลี่ยนเป็น `plan: free` ต้องยอมรับความเสี่ยงนี้
+- **Free (512 MB)** — ใช้งานจริงได้ แต่มี cold start นาน (request แรกวัดได้ ~79.6 วินาที) และเสี่ยง OOM หากมี request พร้อมกันหลายรายการ
+- **Starter (2 GB)** — แนะนำหากต้องการความเสถียร แต่ต้องเพิ่ม payment method ใน Render
+
+### 7.5 ค่าใช้จ่ายและข้อจำกัดของ Free plan
+
+- Service จะ spin down หลังไม่มีผู้ใช้งานระยะหนึ่ง; request แรกหลังจากนั้นจะช้า
+- ไม่มี custom domain แบบ fully managed และอาจมีข้อจำกัดด้านทรัพยากร
+- หากต้องการให้อาจารย์เปิดดูได้ทันที ควรเปิด URL ล่วงหน้าอย่างน้อย 1–2 นาทีก่อนนำเสนอ
 
 ---
 
@@ -315,24 +336,48 @@ services:
 | Responsive 1440 / 768 / 390 px | ผ่าน ไม่มี horizontal overflow |
 | RAM | ~253 MB หลังโหลดโมเดล, ~396 MB หลัง predict ทั้งสองโหมด |
 | เวลา Predict (CPU) | Rectangle 30–79 ms, Polygon 38–185 ms หลัง warm-up; ครั้งแรก ~1.8–3.0 s |
-| Docker build | **ยังไม่ได้รัน** (เครื่องไม่มี Docker) |
-| Deploy Render จริง | **ยังไม่ได้ Deploy** |
+| Docker build ในเครื่อง | **ไม่ได้รัน** (เครื่องพัฒนาไม่มี Docker) |
+| Docker build บน Render | **ผ่าน** — build จาก Dockerfile สำเร็จ |
+| Deploy Render จริง | **ผ่าน** — service สถานะ `live`, health check `/health` ตอบ 200 |
+| หน้าเว็บจริง (Homepage) | ผ่าน — HTTP 200, แสดงชื่อเว็บและ `2 models ready` |
+| Sample images บนเว็บจริง | ผ่าน — HTTP 200, `Content-Type: image/jpeg` |
+| Rectangle บนเว็บจริง (Cat) | ผ่าน — ตรวจพบ `cat` 1 ตัว |
+| Rectangle บนเว็บจริง (Lion) | ผ่าน — ตรวจพบ `lion` 1 ตัว |
+| Polygon บนเว็บจริง (Cat) | ผ่าน — ตรวจพบ `cat` 1 ตัว พร้อม mask |
+| Polygon บนเว็บจริง (Lion) | ผ่าน — ตรวจพบ `lion` 1 ตัว พร้อม mask |
+| ไฟล์ผิดประเภทบนเว็บจริง | ผ่าน — HTTP 400 พร้อมข้อความเข้าใจง่าย |
 
 เวลา predict measured จากฝั่ง server และจะแตกต่างตาม CPU/ขนาดภาพ
+
+### 10.1 ผลทดสอบบน Render (URL จริง)
+
+ทดสอบเมื่อ 31 ตุลาคม 2026 บน `https://yolo-animal-detection-2cpv.onrender.com` (Free plan, region Singapore)
+
+| โหมด | ภาพ | HTTP | ผลลัพธ์ | เวลารวม (wall clock) | เวลาประมวลผล (server) |
+|---|---|---|---|---|---|
+| Rectangle | `randomc_11.jpg` (Cat) | 200 | cat × 1 | 79.56 s (cold start) | 78,685 ms |
+| Rectangle | `randoml_100.jpeg` (Lion) | 200 | lion × 1 | 3.20 s | 2,709 ms |
+| Polygon | `randomc_11.jpg` (Cat) | 200 | cat × 1 + mask | 2.79 s | 2,340 ms |
+| Polygon | `randoml_100.jpeg` (Lion) | 200 | lion × 1 + mask | 2.90 s | 2,508 ms |
+
+- Request แรกหลัง service ตื่นจาก spin down ใช้เวลาประมาณ **79.6 วินาที** (cold start)
+- Request ถัดไปใช้เวลาประมาณ **2.7–3.2 วินาที**
+- ดาวน์โหลดภาพผลลัพธ์และตรวจด้วยสายตาแล้ว พบว่า rectangle และ polygon ตรงกับสัตว์ในภาพจริง
 
 ---
 
 ## 11. ปัญหาที่ยังเหลือ / ข้อจำกัด
 
-1. **ยังไม่ได้ทดสอบ Docker build จริง** — ต้องรัน `docker build` และ `docker run` บนเครื่องที่มี Docker ก่อน deploy
-2. **ยังไม่ได้ Deploy จริงบน Render** — ไม่มีการยืนยัน URL/health check จาก Render
-3. **Free plan RAM จำกัด** — ค่าที่วัดได้ใกล้ขอบ 512 MB มาก จึงตั้ง `plan: starter` ไว้; ถ้าต้องใช้ free ต้องเฝ้าดู OOM
-4. **CPU inference** — ครั้งแรกช้าเพราะ warm-up (~2–3 วินาที) ครั้งถัดไปเร็วขึ้น; บน Render CPU อาจช้ากว่าเครื่องพัฒนา
+1. **Docker build ในเครื่องยังไม่ได้ทดสอบ** — เครื่องพัฒนาไม่มี Docker แต่ Docker build บน Render สำเร็จและ service ทำงานจริงแล้ว; แนะนำทดสอบ `docker build` ในเครื่องอีกครั้งหากต้องการ reproducibility เต็มรูปแบบ
+2. **Deploy บน Free plan (512 MB)** — บัญชี Render ที่ใช้ไม่มี payment method ทำให้ไม่สามารถใช้ Starter plan ได้ จึง deploy ด้วย Free plan; ในการทดสอบนี้ predict ทั้งสองโหมดทำงานได้ แต่ headroom เหลือน้อยและอาจ OOM หากมี request พร้อมกันหลายรายการ
+3. **Cold start ของ Free plan** — service จะ spin down เมื่อไม่มีผู้ใช้งาน และ request แรกหลังตื่นใช้เวลาประมาณ **79.6 วินาที**; ควรเปิด URL ล่วงหน้า 1–2 นาทีก่อนนำเสนอ
+4. **CPU inference** — ครั้งแรกช้าเพราะ warm-up (~2–3 วินาที) ครั้งถัดไปเร็วขึ้น; บน Render CPU ช้ากว่าเครื่องพัฒนา (ประมาณ 2.3–2.7 วินาทีต่อภาพ)
 5. **Request ไปยังโมเดลเดียวกันถูก serialize ด้วย lock** — ป้องกันปัญหา thread-safety แต่ผู้ใช้หลายคนพร้อมกันอาจต้องรอคิว
 6. **ไม่มี authentication / rate limiting** — เหมาะกับงานสาธิต ไม่เหมาะเปิดสาธารณะระยะยาวโดยไม่มีมาตรการเพิ่ม
 7. **รองรับเฉพาะ JPG/JPEG/PNG** — ไม่รองรับ HEIC/AVIF/WebP ตามข้อกำหนด
 8. **ความแม่นยำขึ้นกับข้อมูลฝึก** — Confidence ไม่ใช่การรับประกันผลลัพธ์ และภาพที่อยู่นอก dataset อาจตรวจจับผิด/ไม่พบ
 9. **Gunicorn ใช้ไม่ได้บน Windows** — บน Windows ใช้ Flask development server (`python app.py`); production ใช้ Gunicorn ใน Docker/Linux
+10. **ต้องมี payment method หากต้องการ Starter plan** — หากต้องการ RAM 2 GB เพื่อความเสถียร ต้องเพิ่มบัตรใน Render Billing แล้วเปลี่ยน plan เป็น `starter`
 
 ---
 
@@ -343,7 +388,8 @@ services:
 - `templates/404.html` — หน้า 404
 - `requirements.txt` — เพิ่ม marker สำหรับ Gunicorn และจำกัด version
 - `Dockerfile` — ปรับให้ build/run เป็น non-root, CPU PyTorch, healthcheck, PORT
-- `render.yaml` — ตั้งค่า Docker/health check/plan/env
+- `render.yaml` — ตั้งค่า Docker/health check/plan (Free)/env
 - `README.md` — เอกสารนี้
 - `.gitignore`, `.dockerignore` — ไฟล์ใหม่
+- `.gitattributes` — บังคับ LF และกำหนดไฟล์ binary (`.pt`, รูปภาพ)
 - `tests/test_app.py` — ชุดทดสอบใหม่

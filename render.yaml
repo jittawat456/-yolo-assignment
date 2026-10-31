@@ -2,7 +2,7 @@ services:
   - type: web
     name: yolo-animal-detection
     runtime: docker
-    plan: starter          # 2 GB RAM; use "free" only if you accept 512 MB and cold starts
+    plan: free             # 512 MB; deployed on Free plan (Starter requires a payment method)
     region: singapore
     dockerContext: .
     dockerfilePath: ./Dockerfile
